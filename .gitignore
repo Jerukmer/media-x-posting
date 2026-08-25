@@ -1,0 +1,5 @@
+state.db
+state.db-journal
+__pycache__/
+*.pyc
+draft.txt
