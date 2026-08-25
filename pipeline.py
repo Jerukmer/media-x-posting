@@ -69,14 +69,25 @@ def make_single_tweet(item):
 
     return _trim_to(tweet)
 
-def transform(items):
-    """Given raw items, return list of {item, tweet_text} ready to post (deduped upstream)."""
+def transform(items, use_llm=True):
+    """Given raw items, return list of {item, tweet_text, method} ready to post.
+    use_llm: coba LLM paraphrase dulu; kalau gagal fallback ke template lokal."""
+    from paraphraser import llm_paraphrase
     results = []
+    llm_ok = 0
     for it in items:
-        tweet = make_single_tweet(it)
+        tweet = None
+        method = "template"
+        if use_llm:
+            tweet = llm_paraphrase(it.get("title", ""), it.get("summary", ""), it.get("source", ""))
+            if tweet:
+                method = "llm"
+                llm_ok += 1
+        if not tweet:
+            tweet = make_single_tweet(it)
         if tweet:
-            results.append({"item": it, "tweet_text": tweet})
-    print(f"[pipeline] transformed {len(results)}/{len(items)} items into tweets")
+            results.append({"item": it, "tweet_text": tweet, "method": method})
+    print(f"[pipeline] transformed {len(results)}/{len(items)} items (LLM: {llm_ok}, template: {len(results)-llm_ok})")
     return results
 
 if __name__ == "__main__":

@@ -53,17 +53,29 @@ def post_tweet(text):
                 return False, "SESSION EXPIRED — login manual dulu"
 
             # --- OPEN COMPOSE MODAL ---
-            # Pakai nav Post button (lebih stabil daripada goto compose URL)
+            # PENTING: SELALU klik Post button dari home. JANGAN goto /compose/post
+            # — itu bikin modal dobel (mask nyangkut, 2 composer) dan wait_for race.
             post_btn = page.locator('[data-testid="SideNav_NewTweet_Button"]').first
-            try:
-                post_btn.click(timeout=8000)
-            except Exception:
-                # fallback: langsung ke compose URL
-                page.goto(COMPOSE_URL, timeout=15000, wait_until="domcontentloaded")
+            clicked = False
+            for attempt in range(3):
+                try:
+                    post_btn.wait_for(state="visible", timeout=8000)
+                    post_btn.click(timeout=5000)
+                    clicked = True
+                    break
+                except Exception:
+                    # button belum ada → pastikan di home + reload ringan
+                    page.goto("https://x.com/home", timeout=20000, wait_until="domcontentloaded")
+                    time.sleep(4)
+            if not clicked:
+                return False, "Post button tidak bisa diklik setelah 3 attempt"
             time.sleep(2)
 
             composer = page.locator('[data-testid="tweetTextarea_0"]').first
-            composer.wait_for(state="visible", timeout=10000)
+            try:
+                composer.click(timeout=8000)
+            except Exception:
+                return False, "composer gak muncul setelah klik Post (modal issue)"
 
             # --- INPUT TEXT via keyboard.type (React-safe, proven) ---
             # NOTE: clipboard paste GAGAL dari Hermes SYSTEM context (Set-Clipboard
