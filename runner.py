@@ -15,11 +15,19 @@ import state
 from post_executor import post_tweet
 
 ACTIVE_HOURS = (6, 22)  # WIB window; outside = skip
+RANDOM_OFFSET_MAX = 50 * 60  # maks 50 menit acak biar gak pas jam
 
 def in_active_hours():
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone(timedelta(hours=7)))
     return ACTIVE_HOURS[0] <= now.hour < ACTIVE_HOURS[1]
+
+def sleep_random_offset():
+    """Tunggu offset acak biar posting gak pas jam (manusiawi)."""
+    import random, time
+    offset = random.randint(0, RANDOM_OFFSET_MAX)
+    print(f"[runner] random offset {offset//60} menit sebelum posting (manusiawi)")
+    time.sleep(offset)
 
 def main():
     print(f"=== media-x-posting runner ===")
@@ -55,12 +63,16 @@ def main():
 
     # 4. Pick satu teratas, lalu LLM-paraphrase tweet final itu
     chosen = tweets[0]
-    from paraphraser import llm_paraphrase
-    llm_text = llm_paraphrase(chosen["item"].get("title",""), chosen["item"].get("summary",""))
-    if llm_text:
+    from llm_client import rewrite_news
+    llm_text = rewrite_news(chosen["item"].get("title",""), chosen["item"].get("summary",""))
+    if llm_text and len(llm_text) >= 20:
         print(f"[runner] LLM rewrite: {llm_text[:80]}...")
         chosen["tweet_text"] = llm_text
         chosen["method"] = "llm"
+
+    # 4b. Random delay biar gak pas jam (manusiawi)
+    sleep_random_offset()
+
     print(f"[runner] POSTING ({chosen.get('method','?')}): {chosen['tweet_text'][:100]}...")
 
     # 5. Post
