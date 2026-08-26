@@ -15,7 +15,7 @@ runner.py        → orchestrator, run 1x/hour
 ## Setup (EMIS-07 specific)
 
 1. Chrome dedicated profile: `C:/Users/EMIS-07/media-x-posting-profile`, CDP port 9222.
-2. Relaunch via scheduled task (Hermes runs as SYSTEM — direct launch is invisible):
+2. Relaunch via scheduled task, HEADLESS mode (no window, session persists):
    ```
    schtasks /Run /TN "MediaXChromeLaunch"
    ```
